@@ -1,0 +1,1 @@
+for conan workspace to work right now every projects needs to have an include folder even if it is not used
