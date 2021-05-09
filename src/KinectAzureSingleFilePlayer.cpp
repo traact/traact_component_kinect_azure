@@ -44,7 +44,7 @@
 #include <traact/pattern/ParameterUtils.h>
 #include <traact/vision_datatypes.h>
 #include "KinectUtils.h"
-
+#include <mutex>
 namespace traact::component::vision {
     class KinectAzureSingleFilePlayer : public Component {
     public:
@@ -58,7 +58,8 @@ namespace traact::component::vision {
 
 
 
-            pattern->addStringParameter("file", "/data/video.mkv");
+            pattern->addStringParameter("file", "/data/video.mkv")
+                        .addParameter("stop_after_n_frames", -1l, -1l, std::numeric_limits<std::int64_t>::max());
 
 
             return pattern;
@@ -71,7 +72,7 @@ namespace traact::component::vision {
                 return true;
 
             pattern::setValueFromParameter(parameter, "file", filename_, "/data/video.mkv");
-
+            pattern::setValueFromParameter(parameter, "stop_after_n_frames", stop_after_n_frames_, stop_after_n_frames_);
 
 
 
@@ -131,6 +132,8 @@ namespace traact::component::vision {
                     //recording_.time_per_frame = std::chrono::microseconds(std::micro::den / (std::micro::num * 30));
                     break;
             }
+
+            return true;
         }
         bool start() override{
             SPDLOG_INFO("{0}: Starting Kinect Player", getName());
@@ -144,11 +147,25 @@ namespace traact::component::vision {
             return true;
         }
         bool stop() override{
-            if(!running_)
-                return true;
-            running_ = false;
+
+            {
+                std::unique_lock<std::timed_mutex> guard(mutex_,  std::defer_lock);
+                if (!guard.try_lock_for(std::chrono::milliseconds(100))) {
+                    SPDLOG_ERROR("Timeout for lock stop, return false");
+                    return false;
+                }
+
+                if(!running_)
+                    return true;
+                running_ = false;
+            }
+
             thread_->join();
-            thread_sender_->join();
+            // if the sender thread is about to exit because the playback finished
+            // calling setSourceFinished would lead the thread to wait for itself to finish, in that case don't wait as it will finish anyway
+            //if(!thread_loop_end_)
+                thread_sender_->join();
+
             return true;
         }
         bool teardown() override{
@@ -171,7 +188,11 @@ namespace traact::component::vision {
             k4a::image ir_image;
         } frame_t;
 
+        std::int64_t stop_after_n_frames_{-1};
+        std::uint64_t current_frame_idx_{0};
+        std::timed_mutex mutex_;
         bool running_{false};
+        //bool thread_loop_end_{false};
         std::string filename_;
         TimestampType  first_timestamp_;
 
@@ -182,24 +203,54 @@ namespace traact::component::vision {
         bool reached_end{false};
         Semaphore frames_lock_;
         Semaphore has_data_lock_;
+        TimeDurationType last_offset_{0};
 
         traact::vision::CameraCalibration color_calibration_;
         traact::vision::CameraCalibration ir_calibration_;
 
+        bool IsRunning() {
+            std::unique_lock<std::timed_mutex> guard(mutex_,  std::defer_lock);
+            if (!guard.try_lock_for(std::chrono::milliseconds(10))) {
+                SPDLOG_ERROR("Timeout for lock IsRunning, return false");
+                return false;
+            }
+            return running_ && !reached_end;
+        }
+
+        bool IsSenderRunning()  {
+            std::unique_lock<std::timed_mutex> guard(mutex_,  std::defer_lock);
+            if (!guard.try_lock_for(std::chrono::milliseconds(10))) {
+                SPDLOG_ERROR("Timeout for lock IsSenderRunning, return false");
+                return false;
+            }
+            return  running_ && (has_data_lock_.count() > 0 || !reached_end);
+        }
+
 
         void thread_loop() {
 
-            while (running_ && !reached_end) {
+            while (IsRunning()) {
                 SPDLOG_TRACE("{0}: read next frame to buffer", getName());
                 reached_end = !read_frame();
 
             };
         }
         void thread_loop_sender(){
-            while(running_ && !reached_end) {
-
+            while(IsSenderRunning()) {
                 SPDLOG_TRACE("{0}: wait for data", getName());
-                has_data_lock_.wait();
+                while(IsSenderRunning()){
+                    if(has_data_lock_.wait()) {
+                        break;
+                    } else {
+                        SPDLOG_TRACE("{0}: timeout when waiting to send new frame", getName());
+                    };
+                }
+
+                if(!IsSenderRunning()){
+                    break;
+                }
+
+
 
                 frame_t current_frame = frames.front();
                 frames.pop();
@@ -228,9 +279,29 @@ namespace traact::component::vision {
 
                 SPDLOG_TRACE("{0}: commit color", getName());
                 buffer->Commit(true);
+
+                current_frame_idx_++;
+                if(current_frame_idx_ > stop_after_n_frames_){
+                    {
+                        std::unique_lock<std::timed_mutex> guard(mutex_,  std::defer_lock);
+                        running_ = false;
+                    }
+                    setSourceFinished();
+                }
             }
 
+
             SPDLOG_INFO("{0}: playback end", getName());
+//            {
+//                std::unique_lock<std::timed_mutex> guard(mutex_,  std::defer_lock);
+//                if (!guard.try_lock_for(std::chrono::milliseconds(10))) {
+//                    SPDLOG_ERROR("Timeout for lock playback end");
+//                }
+//                thread_loop_end_ = true;
+//            }
+            if(running_)
+                setSourceFinished();
+
 
         };
 
@@ -267,7 +338,17 @@ namespace traact::component::vision {
             using namespace std::chrono;
 
             try{
-                frames_lock_.wait();
+                //frames_lock_.wait();
+                while(IsRunning()){
+                    if(frames_lock_.wait()) {
+                        break;
+                    } else {
+                        SPDLOG_TRACE("{0}: timeout when waiting to get new frame buffer", getName());
+                    };
+                }
+
+                if(!IsRunning())
+                    return false;
 
                 TimeDurationType ts_ns = TimeDurationType::min();
                 frame_t new_frame;
@@ -275,20 +356,28 @@ namespace traact::component::vision {
                 while(ts_ns == TimeDurationType::min()){
                     if (!recording_.handle.get_next_capture(&(recording_.capture))) {
                         reached_end = true;
-                        SPDLOG_ERROR("{0}: could not read frame", getName());
+                        SPDLOG_INFO("{0}: reached end of file", getName());
                         return false;
                     }
 
                     new_frame.color_image = recording_.capture.get_color_image();
                     new_frame.ir_image = recording_.capture.get_ir_image();
                     if(new_frame.color_image == nullptr || new_frame.ir_image == nullptr){
-                        SPDLOG_ERROR("read image is null, skip and continue with next image");
+                        SPDLOG_WARN("read image is null, skip and continue with next image");
+                        continue;
                     } else
                         ts_ns = duration_cast<nanoseconds>(new_frame.color_image.get_device_timestamp());
 
-
+                    if(ts_ns <= last_offset_) {
+                        ts_ns = TimeDurationType(0);
+                        SPDLOG_WARN("timestamp not monotonic pref ts {0}, ts {1}, skip", last_offset_.count(), ts_ns.count());
+                        continue;
+                    }
+                    last_offset_ = ts_ns;
                 }
+
                 new_frame.timestamp = TimestampType::min() + ts_ns;
+                spdlog::info("{0}: new frame data with ts {1}", getName(), new_frame.timestamp.time_since_epoch().count());
                 frames.push(std::move(new_frame));
                 has_data_lock_.notify();
             } catch ( ... ) {
