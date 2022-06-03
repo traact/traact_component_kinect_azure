@@ -32,7 +32,7 @@ class Traact(ConanFile):
 
     exports_sources = "src/*", "util/*", "tests/*", "CMakeLists.txt"
 
-    def requirements(self):
+    def requirements(self):        
         self.requires("traact_vision/%s@camposs/stable" % self.version)
         self.requires("traact_spatial/%s@camposs/stable" % self.version)
 

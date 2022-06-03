@@ -45,11 +45,12 @@
 #include <traact/vision_datatypes.h>
 #include "KinectUtils.h"
 #include <mutex>
+#include <traact/buffer/SourceComponentBuffer.h>
 namespace traact::component::vision {
     class KinectAzureSingleFilePlayer : public Component {
     public:
         traact::pattern::Pattern::Ptr GetPattern() const override{
-            traact::pattern::spatial::SpatialPattern::Ptr
+            traact::pattern::Pattern::Ptr
                     pattern = getCameraPattern();
             pattern->name = "KinectAzureSingleFilePlayer";
 
@@ -260,9 +261,11 @@ namespace traact::component::vision {
 
                 SPDLOG_TRACE("{0}: send next frame to network {1}", getName(), ts.time_since_epoch().count());
 
-                auto buffer = request_callback_(ts);
-                if(buffer == nullptr){
-                    SPDLOG_ERROR("component {0} ts {1} rejected", name_, ts.time_since_epoch().count());
+                auto buffer_future = request_callback_(ts);
+                buffer_future.wait();
+                auto buffer = buffer_future.get();
+                if(!buffer){
+                    SPDLOG_WARN("Could not get source buffer for ts {0}", ts.time_since_epoch().count());
                     continue;
                 }
 

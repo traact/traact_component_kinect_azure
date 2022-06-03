@@ -36,7 +36,7 @@
 
 #include <tbb/task_group.h>
 
-
+#include <traact/buffer/SourceComponentBuffer.h>
 
 std::string traact::component::vision::KinectAzureComponent::GetModuleKey() {
   return "KinectAzureDevice_"+device_id_;
@@ -53,8 +53,10 @@ void traact::component::vision::KinectAzureComponent::process(k4abt::frame& capt
 }
 void traact::component::vision::KinectAzureComponent::noValidInput(traact::TimestampType ts) {
   SPDLOG_INFO("no valid input for ts: {0}", ts.time_since_epoch().count());
-  auto buffer = request_callback_(ts);
-    buffer->Commit(true);
+  auto buffer_future = request_callback_(ts);
+  buffer_future.wait();
+  auto buffer = buffer_future.get();
+  buffer->Commit(false);
 }
 
 bool traact::component::vision::KinectAzureModule::init(traact::component::Module::ComponentPtr module_component) {

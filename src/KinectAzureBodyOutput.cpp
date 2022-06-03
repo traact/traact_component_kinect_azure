@@ -40,6 +40,7 @@
 #include "KinectUtils.h"
 #include <traact/spatialBody.h>
 #include <rttr/registration>
+#include <traact/buffer/SourceComponentBuffer.h>
 namespace traact::component::vision {
 
 class KinectAzureBodyOutput : public KinectAzureComponent {
@@ -49,7 +50,7 @@ class KinectAzureBodyOutput : public KinectAzureComponent {
   }
 
   traact::pattern::Pattern::Ptr GetPattern() const override {
-    traact::pattern::spatial::SpatialPattern::Ptr
+    traact::pattern::Pattern::Ptr
         pattern = getUncalibratedCameraPattern();
     pattern->name = "KinectAzureBodyOutput";
 
@@ -105,7 +106,13 @@ class KinectAzureBodyOutput : public KinectAzureComponent {
   void process(k4abt::frame& body_frame, TimestampType ts) override {
     using namespace traact::spatial;
 
-    auto buffer = request_callback_(ts);
+      auto buffer_future = request_callback_(ts);
+      buffer_future.wait();
+      auto buffer = buffer_future.get();
+      if(!buffer){
+          SPDLOG_WARN("Could not get source buffer for ts {0}", ts.time_since_epoch().count());
+          return;
+      }
 
     size_t numBodies = body_frame.get_num_bodies();
     auto &newData = buffer->getOutput<BodyListHeader::NativeType, BodyListHeader>(0);

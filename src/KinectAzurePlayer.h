@@ -44,7 +44,7 @@ namespace traact::component::vision {
 class KinectAzurePlayer : public PlayerBaseComponent {
  public:
   traact::pattern::Pattern::Ptr GetPattern() const override{
-    traact::pattern::spatial::SpatialPattern::Ptr
+    traact::pattern::Pattern::Ptr
         pattern = getCameraPattern();
     pattern->name = "KinectAzurePlayer";
 

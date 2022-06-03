@@ -33,7 +33,7 @@
 #include "KinectAzurePlayer.h"
 #include "KinectUtils.h"
 #include <rttr/registration>
-
+#include <traact/buffer/SourceComponentBuffer.h>
 traact::TimestampType traact::component::vision::KinectAzurePlayer::GetFirstTimestamp() {
   return first_timestamp_;
 }
@@ -53,15 +53,15 @@ void traact::component::vision::KinectAzurePlayer::SendCurrent(traact::Timestamp
   using namespace traact::vision;
 
 
-  //TODO need to check for valid buffer
-  //if (domain_ts != TimestampType::min())
 
-  auto buffer = request_callback_(ts);
-  if(buffer == nullptr){
-      SPDLOG_ERROR("could not get buffer");
-      return;
 
-  }
+    auto buffer_future = request_callback_(ts);
+    buffer_future.wait();
+    auto buffer = buffer_future.get();
+    if(!buffer){
+        SPDLOG_WARN("Could not get source buffer for ts {0}", ts.time_since_epoch().count());
+        return;
+    }
 
 
   frame_t current_frame = frames.front();
@@ -69,12 +69,6 @@ void traact::component::vision::KinectAzurePlayer::SendCurrent(traact::Timestamp
 
   frames_lock_.notify();
 
-  /*
-  if(!frames.try_pop(current_frame)) {
-    SPDLOG_ERROR("trying to send current image with no data in queue");
-    return;
-  }
-  */
 
 
   const k4a::image inputImage = current_frame.color_image;

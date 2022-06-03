@@ -39,6 +39,7 @@
 #include "KinectAzure.h"
 #include "KinectUtils.h"
 #include <rttr/registration>
+#include <traact/buffer/SourceComponentBuffer.h>
 namespace traact::component::vision {
 
 	
@@ -49,7 +50,7 @@ class KinectAzureColorOutput : public KinectAzureComponent {
   }
 
   traact::pattern::Pattern::Ptr GetPattern() const override{
-    traact::pattern::spatial::SpatialPattern::Ptr
+    traact::pattern::Pattern::Ptr
         pattern = getUncalibratedCameraPattern();
     pattern->name = "KinectAzureColorOutput";
 
@@ -94,7 +95,14 @@ class KinectAzureColorOutput : public KinectAzureComponent {
   void process(k4a::capture &capture, TimestampType ts) override {
     using namespace traact::vision;
 
-    auto buffer = request_callback_(ts);
+      auto buffer_future = request_callback_(ts);
+      buffer_future.wait();
+      auto buffer = buffer_future.get();
+      if(!buffer){
+          SPDLOG_WARN("Could not get source buffer for ts {0}", ts.time_since_epoch().count());
+          return;
+      }
+
 
     const k4a::image inputImage = capture.get_color_image();
 
