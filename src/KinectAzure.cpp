@@ -214,7 +214,7 @@ void traact::component::vision::KinectAzureModule::threadLoop() {
         SPDLOG_ERROR("Error in capture loop: {0}", e.what());
     }
 
-    spdlog::trace("source quit loop");
+    SPDLOG_TRACE("source quit loop");
     running_ = false;
 }
 traact::component::vision::KinectAzureModule::KinectAzureModule() {

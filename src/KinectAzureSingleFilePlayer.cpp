@@ -83,7 +83,7 @@ class KinectAzureSingleFilePlayer : public Component {
 
         // skip the first 5 frames from the recording as they typically contain chunk frames/timestamps
         uint64_t min_ts;
-        //spdlog::info("PlaybackKinect4Azure[{0}] skipping 5 frames from start for: {1}", m_name, filename);
+        //SPDLOG_INFO("PlaybackKinect4Azure[{0}] skipping 5 frames from start for: {1}", m_name, filename);
         for (int i = 0; i < 5; i++) {
             //get_minimum_timestamp_from_capture(recording_, min_ts);
             if (!recording_.handle.get_next_capture(&(recording_.capture))) {
@@ -357,7 +357,7 @@ class KinectAzureSingleFilePlayer : public Component {
             }
 
             new_frame.timestamp = Timestamp::min() + ts_ns;
-            spdlog::info("{0}: new frame data with ts {1}", getName(), new_frame.timestamp.time_since_epoch().count());
+            SPDLOG_INFO("{0}: new frame data with ts {1}", getName(), new_frame.timestamp.time_since_epoch().count());
             frames.push(std::move(new_frame));
             has_data_lock_.notify();
         } catch (...) {

@@ -106,18 +106,18 @@ bool traact::component::vision::KinectAzurePlayer::configure(const nlohmann::jso
     KinectUtils::k4a2traact(kinect_calib.depth_camera_calibration, ir_calibration_);
 
     if (recording_.handle.get_recording_length().count() == 0) {
-        //spdlog::error("PlaybackKinect4Azure[{0}] recording with no content: {1}", m_name, filename);
+        //SPDLOG_ERROR("PlaybackKinect4Azure[{0}] recording with no content: {1}", m_name, filename);
         return false;
     }
 
     if (!recording_.handle.get_next_capture(&(recording_.capture))) {
-        //spdlog::error("PlaybackKinect4Azure[{0}] recording cannot read first frame: {1}", m_name, filename);
+        //SPDLOG_ERROR("PlaybackKinect4Azure[{0}] recording cannot read first frame: {1}", m_name, filename);
         return false;
     }
 
     // skip the first 5 frames from the recording as they typically contain chunk frames/timestamps
     uint64_t min_ts;
-    //spdlog::info("PlaybackKinect4Azure[{0}] skipping 5 frames from start for: {1}", m_name, filename);
+    //SPDLOG_INFO("PlaybackKinect4Azure[{0}] skipping 5 frames from start for: {1}", m_name, filename);
     for (int i = 0; i < 5; i++) {
         //get_minimum_timestamp_from_capture(recording_, min_ts);
         if (!recording_.handle.get_next_capture(&(recording_.capture))) {
