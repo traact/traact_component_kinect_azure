@@ -5,12 +5,11 @@ from conans import ConanFile, CMake, tools
 
 class Traact(ConanFile):
     name = "traact_component_kinect_azure"
-    version = "0.0.1"
-    
+    version = "0.1.0"
 
     description = "Traact Kinect Azure driver component"
     url = ""
-    license = "BSD 3-Clause"
+    license = "MIT"
     author = "Frieder Pankratz"
 
     short_paths = True
@@ -27,15 +26,14 @@ class Traact(ConanFile):
     default_options = {
         "shared": True,
         "with_tests": True,
-        "with_bodytracking" : True
+        "with_bodytracking": True
     }
 
     exports_sources = "src/*", "util/*", "tests/*", "CMakeLists.txt"
 
-    def requirements(self):        
-        self.requires("traact_vision/%s@camposs/stable" % self.version)
-        self.requires("traact_spatial/%s@camposs/stable" % self.version)
-
+    def requirements(self):
+        self.requires("traact_vision/[>=0.1.0]@camposs/stable")
+        self.requires("traact_spatial/[>=0.1.0]@camposs/stable")
 
         self.requires("kinect-azure-sensor-sdk/1.4.1@camposs/stable")
         if self.options.with_bodytracking:
@@ -43,8 +41,7 @@ class Traact(ConanFile):
 
         if self.options.with_tests:
             self.requires("gtest/1.10.0")
-        
-        
+
     def _configure_cmake(self):
         cmake = CMake(self)
         cmake.verbose = True
@@ -62,7 +59,7 @@ class Traact(ConanFile):
         return cmake
 
     def configure(self):
-        self.options['traact_vision'].shared = self.options.shared        
+        self.options['traact_vision'].shared = self.options.shared
         self.options['traact_spatial'].shared = self.options.shared
 
     def build(self):
@@ -75,4 +72,4 @@ class Traact(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = [self.name]
-        #self.cpp_info.libs = tools.collect_libs(self)
+        # self.cpp_info.libs = tools.collect_libs(self)
