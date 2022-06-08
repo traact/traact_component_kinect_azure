@@ -2,8 +2,7 @@ name: Build Conan Pakages
 on:
   push:
     branches:
-      - 'main'
-
+      - 'releases/**'
 jobs:
   conan_package:
     strategy:
@@ -17,7 +16,6 @@ jobs:
             install-headerfiles: true
             prepare-python: true
             conan_base_profile: "linux-gcc7-amd64"
-
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@master
@@ -38,8 +36,8 @@ jobs:
       - name: Export package
         run: |
           conan user
-          conan export . @traact/latest
-          conan remote add traact-camposs https://conan.campar.in.tum.de/api/conan/conan-traact
+          conan config install https://github.com/traact/bincrafters-config.git
+          conan export . @traact/stable
       - name: Upload Package
         uses: grisumbras/conan-upload@v0.3.0
         with:
@@ -48,4 +46,4 @@ jobs:
           url: https://conan.campar.in.tum.de/api/conan/conan-traact
           remote: traact-camposs
           user: traact
-          channel: latest
+          channel: stable
