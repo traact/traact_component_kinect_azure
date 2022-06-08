@@ -1,8 +1,4 @@
-/**
- *   Copyright (C) 2022  Frieder Pankratz <frieder.pankratz@gmail.com>
- *
- *   License in root folder
-**/
+/** Copyright (C) 2022  Frieder Pankratz <frieder.pankratz@gmail.com> **/
 
 #ifndef TRAACTMULTI_TRAACT_KINECT_AZURE_SRC_KINECTUTILS_H_
 #define TRAACTMULTI_TRAACT_KINECT_AZURE_SRC_KINECTUTILS_H_

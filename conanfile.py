@@ -8,7 +8,7 @@ class Traact(ConanFile):
     version = "0.1.0"
 
     description = "Traact Kinect Azure driver component"
-    url = ""
+    url = "https://github.com/traact/traact_component_kinect_azure"
     license = "MIT"
     author = "Frieder Pankratz"
 
@@ -32,15 +32,15 @@ class Traact(ConanFile):
     exports_sources = "src/*", "util/*", "tests/*", "CMakeLists.txt"
 
     def requirements(self):
-        self.requires("traact_vision/[>=0.1.0]@camposs/stable")
-        self.requires("traact_spatial/[>=0.1.0]@camposs/stable")
+        self.requires("traact_vision/[>=0.1.0]@traact/latest")
+        self.requires("traact_spatial/[>=0.1.0]@traact/latest")
 
         self.requires("kinect-azure-sensor-sdk/1.4.1@camposs/stable")
         if self.options.with_bodytracking:
             self.requires("kinect-azure-bodytracking-sdk/1.1.0@vendor/stable")
 
         if self.options.with_tests:
-            self.requires("gtest/1.10.0")
+            self.requires("gtest/[>=1.10.0]")
 
     def _configure_cmake(self):
         cmake = CMake(self)
@@ -72,4 +72,3 @@ class Traact(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = [self.name]
-        # self.cpp_info.libs = tools.collect_libs(self)
