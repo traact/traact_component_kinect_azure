@@ -5,8 +5,6 @@
 #include "KinectAzure.h"
 #include "KinectUtils.h"
 
-#include <tbb/task_group.h>
-
 #include <traact/buffer/SourceComponentBuffer.h>
 
 std::string traact::component::vision::KinectAzureComponent::getModuleKey() {
@@ -104,7 +102,7 @@ void traact::component::vision::KinectAzureModule::threadLoop() {
     int output_count = 0;
 
     try {
-        tbb::task_group local_tasks;
+        //tbb::task_group local_tasks;
 
         SPDLOG_INFO("open cameras");
         device_.start_cameras(&device_configuration);
@@ -200,7 +198,7 @@ void traact::component::vision::KinectAzureModule::threadLoop() {
                     }
                 }
 #endif
-                local_tasks.wait();
+                //local_tasks.wait();
 
             }
         }

@@ -8,7 +8,6 @@
 #include <traact/component/vision/BasicVisionPattern.h>
 #include <k4arecord/playback.hpp>
 #include <k4a/k4a.h>
-#include <tbb/concurrent_queue.h>
 #include <traact/util/Semaphore.h>
 
 namespace traact::component::vision {

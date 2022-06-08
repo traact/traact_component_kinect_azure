@@ -8,7 +8,7 @@ class Traact(ConanFile):
     version = "0.1.0"
 
     description = "Traact Kinect Azure driver component"
-    url = "https://github.com/traact/traact_component_kinect_azure"
+    url = "https://github.com/traact/traact_component_kinect_azure.git"
     license = "MIT"
     author = "Frieder Pankratz"
 
