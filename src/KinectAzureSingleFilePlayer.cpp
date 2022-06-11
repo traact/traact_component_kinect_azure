@@ -1,7 +1,6 @@
 /** Copyright (C) 2022  Frieder Pankratz <frieder.pankratz@gmail.com> **/
 
-#include <traact/component/Component.h>
-#include <traact/buffer/ComponentBuffer.h>
+#include <traact/traact.h>
 #include <traact/vision.h>
 #include <traact/component/vision/BasicVisionPattern.h>
 #include <k4arecord/playback.hpp>
@@ -9,33 +8,50 @@
 #include <traact/util/Semaphore.h>
 #include <thread>
 #include <queue>
-#include <rttr/registration>
-#include <traact/util/Logging.h>
-#include <traact/pattern/ParameterUtils.h>
-#include <traact/vision_datatypes.h>
 #include "KinectUtils.h"
 #include <mutex>
-#include <traact/buffer/SourceComponentBuffer.h>
-namespace traact::component::vision {
+
+namespace traact::component::kinect {
+
 class KinectAzureSingleFilePlayer : public Component {
  public:
-    traact::pattern::Pattern::Ptr GetPattern() const override {
-        traact::pattern::Pattern::Ptr
-            pattern = getCameraPattern();
-        pattern->name = "KinectAzureSingleFilePlayer";
+    using OutPort_ColorImage = buffer::PortConfig<traact::vision::ImageHeader, 0>;
+    using OutPort_ColorCalibration = buffer::PortConfig<traact::vision::CameraCalibrationHeader, 1>;
+    using OutPort_IrImage = buffer::PortConfig<traact::vision::ImageHeader, 2>;
+    using OutPort_IrCalibration = buffer::PortConfig<traact::vision::CameraCalibrationHeader, 3>;
 
-        pattern->addProducerPort("output_ir", traact::vision::ImageHeader::MetaType);
-        pattern->addProducerPort("output_calibration_ir", traact::vision::CameraCalibrationHeader::MetaType);
+    static traact::pattern::Pattern::Ptr GetPattern() {
+        traact::pattern::Pattern::Ptr
+            pattern =
+            std::make_shared<traact::pattern::Pattern>("traact::component::kinect::KinectAzureSingleFilePlayer",
+                                                       Concurrency::SERIAL,
+                                                       ComponentType::ASYNC_SOURCE);
+
+        pattern->addProducerPort<KinectAzureSingleFilePlayer::OutPort_ColorImage>("output")
+            .addProducerPort<KinectAzureSingleFilePlayer::OutPort_ColorCalibration>("output_calibration")
+            .addProducerPort<KinectAzureSingleFilePlayer::OutPort_IrImage>("output_ir")
+            .addProducerPort<KinectAzureSingleFilePlayer::OutPort_IrCalibration>("output_ir_calibration");
+
+        pattern->addCoordinateSystem("ImagePlane")
+            .addCoordinateSystem("Image", true)
+            .addEdge("ImagePlane", "Image", "output");
 
         pattern->addStringParameter("file", "/data/video.mkv")
-            .addParameter("stop_after_n_frames", -1l, -1l, std::numeric_limits<std::int64_t>::max());
+            .addParameter("stop_after_n_frames", -1l, -1l,
+                          std::numeric_limits<std::int64_t>::max()
+            );
 
-        return pattern;
+        return
+            pattern;
     }
 
-    explicit KinectAzureSingleFilePlayer(std::string name) : Component(std::move(name), ComponentType::ASYNC_SOURCE),
+    explicit KinectAzureSingleFilePlayer(std::string name) : Component(std::move(name)),
                                                              has_data_lock_(10, 0),
                                                              frames_lock_(10, 10) {}
+
+    virtual void configureInstance(const pattern::instance::PatternInstance &pattern_instance) override {
+        local_connected_output_ports_ = pattern_instance.getOutputPortsConnected();
+    }
 
     bool configure(const nlohmann::json &parameter, buffer::ComponentBufferConfig *data) override {
         if (running_)
@@ -53,14 +69,6 @@ class KinectAzureSingleFilePlayer : public Component {
         SPDLOG_INFO("{1}: open file {0}", filename_, getName());
         recording_.handle.set_color_conversion(K4A_IMAGE_FORMAT_COLOR_BGRA32);
         recording_.record_config = recording_.handle.get_record_configuration();
-
-        if (recording_.record_config.wired_sync_mode == K4A_WIRED_SYNC_MODE_MASTER) {
-
-        } else if (recording_.record_config.wired_sync_mode == K4A_WIRED_SYNC_MODE_SUBORDINATE) {
-
-        } else {
-
-        }
 
         auto kinect_calib = recording_.handle.get_calibration();
         KinectUtils::k4a2traact(kinect_calib.color_camera_calibration, color_calibration_);
@@ -172,6 +180,7 @@ class KinectAzureSingleFilePlayer : public Component {
 
     traact::vision::CameraCalibration color_calibration_;
     traact::vision::CameraCalibration ir_calibration_;
+    pattern::instance::LocalConnectedOutputPorts local_connected_output_ports_;
 
     bool IsRunning() {
         std::unique_lock<std::timed_mutex> guard(mutex_, std::defer_lock);
@@ -198,6 +207,12 @@ class KinectAzureSingleFilePlayer : public Component {
             reached_end = !read_frame();
 
         };
+    }
+    void setHeader(vision::ImageHeader &header, const k4a::image &image) {
+        header.width = image.get_width_pixels();
+        header.height = image.get_height_pixels();
+        header.stride = image.get_stride_bytes();
+
     }
     void thread_loop_sender() {
         while (IsSenderRunning()) {
@@ -230,19 +245,35 @@ class KinectAzureSingleFilePlayer : public Component {
                 continue;
             }
 
-            auto &color_output =
-                buffer->getOutput<traact::vision::ImageHeader::NativeType, traact::vision::ImageHeader>(0);
-            auto &color_calib = buffer->getOutput<traact::vision::CameraCalibrationHeader::NativeType,
-                                                  traact::vision::CameraCalibrationHeader>(1);
-            auto
-                &ir_output = buffer->getOutput<traact::vision::ImageHeader::NativeType, traact::vision::ImageHeader>(2);
-            auto &ir_calib = buffer->getOutput<traact::vision::CameraCalibrationHeader::NativeType,
-                                               traact::vision::CameraCalibrationHeader>(3);
-            color_calib = color_calibration_;
-            ir_calib = ir_calibration_;
+            if (local_connected_output_ports_[OutPort_ColorImage::PortIdx]) {
+                auto &output = buffer->getOutput<OutPort_ColorImage>();
+                auto &header = buffer->getOutputHeader<OutPort_ColorImage>();
+                setHeader(header, current_frame.color_image);
+                header.pixel_format = vision::PixelFormat::BGRA;
+                header.base_type = BaseType::UINT_8;
+                header.channels = 4;
+                setImage(current_frame.color_image, output);
+            }
 
-            setImage(current_frame.color_image, color_output);
-            setImage(current_frame.ir_image, ir_output);
+            if (local_connected_output_ports_[OutPort_ColorCalibration::PortIdx]) {
+                auto &output = buffer->getOutput<OutPort_ColorCalibration>();
+                output = color_calibration_;
+            }
+
+            if (local_connected_output_ports_[OutPort_IrImage::PortIdx]) {
+                auto &output = buffer->getOutput<OutPort_IrImage>();
+                auto &header = buffer->getOutputHeader<OutPort_IrImage>();
+                setHeader(header, current_frame.ir_image);
+                header.pixel_format = vision::PixelFormat::LUMINANCE;
+                header.base_type = BaseType::UINT_16;
+                header.channels = 1;
+                setImage(current_frame.ir_image, output);
+            }
+
+            if (local_connected_output_ports_[OutPort_IrCalibration::PortIdx]) {
+                auto &output = buffer->getOutput<OutPort_IrCalibration>();
+                output = ir_calibration_;
+            }
 
             SPDLOG_TRACE("{0}: commit color", getName());
             buffer->commit(true);
@@ -271,6 +302,7 @@ class KinectAzureSingleFilePlayer : public Component {
     };
 
     void setImage(const k4a::image &image, traact::vision::Image &result_image) {
+
         int w = image.get_width_pixels();
         int h = image.get_height_pixels();
         cv::Mat image_buffer;
@@ -292,16 +324,9 @@ class KinectAzureSingleFilePlayer : public Component {
             }
             default:SPDLOG_ERROR("image format not supported");
         }
-        if (!result_image.IsCpu() && !result_image.IsGpu()) {
-            traact::vision::ImageHeader header;
-            header.width = w;
-            header.height = h;
-            header.opencv_matrix_type = image_buffer.type();
-            header.device_id = 0;
-            result_image.init(header);
-        }
-        //TODO try to avoid copy image, would it be possible to take ownership of the data?
-        image_buffer.copyTo(result_image.GetCpuMat());
+
+        //result_image.update(image_buffer.clone());
+        result_image.update(image_buffer, std::make_shared<k4a::image>(image));
     }
 
     bool read_frame() {
@@ -363,20 +388,12 @@ class KinectAzureSingleFilePlayer : public Component {
         return true;
     };
 
- RTTR_ENABLE(Component)
-
 };
 
+CREATE_TRAACT_COMPONENT_FACTORY(KinectAzureSingleFilePlayer)
+
 }
 
-
-
-// It is not possible to place the macro multiple times in one cpp file. When you compile your plugin with the gcc toolchain,
-// make sure you use the compiler option: -fno-gnu-unique. otherwise the unregistration will not work properly.
-RTTR_PLUGIN_REGISTRATION // remark the different registration macro!
-{
-
-    using namespace rttr;
-    registration::class_<traact::component::vision::KinectAzureSingleFilePlayer>("KinectAzureSingleFilePlayer").constructor<
-        std::string>()();
-}
+BEGIN_TRAACT_PLUGIN_REGISTRATION
+    REGISTER_DEFAULT_COMPONENT(traact::component::kinect::KinectAzureSingleFilePlayer)
+END_TRAACT_PLUGIN_REGISTRATION

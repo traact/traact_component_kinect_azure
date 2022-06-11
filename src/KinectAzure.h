@@ -15,7 +15,7 @@
 
 #include <thread>
 
-namespace traact::component::vision {
+namespace traact::component::kinect {
 
 enum class KinectOutputs {
     ColorImage = 0,
@@ -29,8 +29,7 @@ enum class KinectOutputs {
 class KinectAzureComponent : public ModuleComponent {
  public:
     KinectAzureComponent(std::string name)
-        : ModuleComponent(name,
-                          traact::component::ComponentType::ASYNC_SOURCE, ModuleType::UNIQUE_DATAFLOW_PARAMETER) {
+        : ModuleComponent(name, ModuleType::UNIQUE_DATAFLOW_PARAMETER) {
     };
 
     virtual void process(k4a::capture &capture, Timestamp ts);
@@ -43,7 +42,7 @@ class KinectAzureComponent : public ModuleComponent {
 
  protected:
     std::string device_id_;
- RTTR_ENABLE(ModuleComponent)
+
 };
 
 class KinectAzureModule : public Module {

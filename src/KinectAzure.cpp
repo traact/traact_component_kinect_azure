@@ -7,20 +7,20 @@
 
 #include <traact/buffer/SourceComponentBuffer.h>
 
-std::string traact::component::vision::KinectAzureComponent::getModuleKey() {
+std::string traact::component::kinect::KinectAzureComponent::getModuleKey() {
     return "KinectAzureDevice_" + device_id_;
 }
-traact::component::Module::Ptr traact::component::vision::KinectAzureComponent::instantiateModule() {
+traact::component::Module::Ptr traact::component::kinect::KinectAzureComponent::instantiateModule() {
     SPDLOG_DEBUG("instantiate kinect device module");
     return std::make_shared<KinectAzureModule>();
 }
-void traact::component::vision::KinectAzureComponent::process(k4a::capture &capture, Timestamp ts) {
+void traact::component::kinect::KinectAzureComponent::process(k4a::capture &capture, Timestamp ts) {
 
 }
-void traact::component::vision::KinectAzureComponent::process(k4abt::frame &capture, Timestamp ts) {
+void traact::component::kinect::KinectAzureComponent::process(k4abt::frame &capture, Timestamp ts) {
 
 }
-void traact::component::vision::KinectAzureComponent::noValidInput(traact::Timestamp ts) {
+void traact::component::kinect::KinectAzureComponent::noValidInput(traact::Timestamp ts) {
     SPDLOG_INFO("no valid input for ts: {0}", ts.time_since_epoch().count());
     auto buffer_future = request_callback_(ts);
     buffer_future.wait();
@@ -28,7 +28,7 @@ void traact::component::vision::KinectAzureComponent::noValidInput(traact::Times
     buffer->commit(false);
 }
 
-bool traact::component::vision::KinectAzureModule::init(traact::component::Module::ComponentPtr module_component) {
+bool traact::component::kinect::KinectAzureModule::init(traact::component::Module::ComponentPtr module_component) {
     std::lock_guard guard(component_lock_);
 
     auto k4a_component = dynamic_cast<KinectAzureComponent *>(module_component);
@@ -59,7 +59,7 @@ bool traact::component::vision::KinectAzureModule::init(traact::component::Modul
 
     return true;
 }
-bool traact::component::vision::KinectAzureModule::start(traact::component::Module::ComponentPtr module_component) {
+bool traact::component::kinect::KinectAzureModule::start(traact::component::Module::ComponentPtr module_component) {
     std::lock_guard guard(component_lock_);
     if (running_) {
         return true;
@@ -73,7 +73,7 @@ bool traact::component::vision::KinectAzureModule::start(traact::component::Modu
     });
     return true;
 }
-bool traact::component::vision::KinectAzureModule::stop(traact::component::Module::ComponentPtr module_component) {
+bool traact::component::kinect::KinectAzureModule::stop(traact::component::Module::ComponentPtr module_component) {
     std::lock_guard guard(component_lock_);
     if (!running_) {
         return true;
@@ -86,7 +86,7 @@ bool traact::component::vision::KinectAzureModule::stop(traact::component::Modul
     }
     return false;
 }
-bool traact::component::vision::KinectAzureModule::teardown(traact::component::Module::ComponentPtr module_component) {
+bool traact::component::kinect::KinectAzureModule::teardown(traact::component::Module::ComponentPtr module_component) {
     std::lock_guard guard(component_lock_);
     if (!initialized_)
         return true;
@@ -95,7 +95,7 @@ bool traact::component::vision::KinectAzureModule::teardown(traact::component::M
     return true;
 }
 
-void traact::component::vision::KinectAzureModule::threadLoop() {
+void traact::component::kinect::KinectAzureModule::threadLoop() {
     using namespace traact::vision;
     using namespace traact;
 
@@ -211,6 +211,6 @@ void traact::component::vision::KinectAzureModule::threadLoop() {
     SPDLOG_TRACE("source quit loop");
     running_ = false;
 }
-traact::component::vision::KinectAzureModule::KinectAzureModule() {
+traact::component::kinect::KinectAzureModule::KinectAzureModule() {
     std::memset(&outputs_, 0, sizeof outputs_);
 }

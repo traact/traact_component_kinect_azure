@@ -14,13 +14,17 @@ include(traact_default_library_setup)
 
 
 set(COMPONENT_KINECT_AZURE_SRC src/KinectAzure.cpp
-        src/KinectAzure.h
+        #src/KinectAzure.h
         src/KinectUtils.cpp
         src/KinectUtils.h
-        src/KinectAzureColorOutput.cpp
-        src/KinectAzureDepthOutput.cpp
-        src/KinectAzureBodyOutput.cpp
-        src/KinectAzureStaticData.h src/KinectAzureIROutput.cpp src/KinectAzurePlayer.cpp src/KinectAzurePlayer.h src/KinectAzureSingleFilePlayer.cpp)
+        #src/KinectAzureColorOutput.cpp
+        #src/KinectAzureDepthOutput.cpp
+        #src/KinectAzureBodyOutput.cpp
+        #src/KinectAzureStaticData.h
+        #src/KinectAzureIROutput.cpp
+        #src/KinectAzurePlayer.cpp
+        #src/KinectAzurePlayer.h
+        src/KinectAzureSingleFilePlayer.cpp)
 
 
 add_library(${CONAN_PACKAGE_NAME} SHARED ${COMPONENT_KINECT_AZURE_SRC})

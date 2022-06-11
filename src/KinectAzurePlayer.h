@@ -4,16 +4,17 @@
 #define TRAACTMULTI_TRAACT_KINECT_AZURE_SRC_KINECTAZUREPLAYER_H_
 
 #include <traact/component/PlayerBaseComponent.h>
+#include <traact/traact.h>
 #include <traact/vision.h>
 #include <traact/component/vision/BasicVisionPattern.h>
 #include <k4arecord/playback.hpp>
 #include <k4a/k4a.h>
 #include <traact/util/Semaphore.h>
 
-namespace traact::component::vision {
+namespace traact::component::kinect {
 class KinectAzurePlayer : public PlayerBaseComponent {
  public:
-    traact::pattern::Pattern::Ptr GetPattern() const override {
+    static traact::pattern::Pattern::Ptr GetPattern() {
         traact::pattern::Pattern::Ptr
             pattern = getCameraPattern();
         pattern->name = "KinectAzurePlayer";
@@ -66,7 +67,7 @@ class KinectAzurePlayer : public PlayerBaseComponent {
 
     bool read_frame();
 
- RTTR_ENABLE(PlayerBaseComponent);
+
 
 };
 

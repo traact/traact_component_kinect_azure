@@ -3,15 +3,14 @@
 
 #include "KinectAzurePlayer.h"
 #include "KinectUtils.h"
-#include <rttr/registration>
-#include <traact/buffer/SourceComponentBuffer.h>
-traact::Timestamp traact::component::vision::KinectAzurePlayer::getFirstTimestamp() {
+
+traact::Timestamp traact::component::kinect::KinectAzurePlayer::getFirstTimestamp() {
     return first_timestamp_;
 }
-bool traact::component::vision::KinectAzurePlayer::hasNext() {
+bool traact::component::kinect::KinectAzurePlayer::hasNext() {
     return !reached_end;//!frames.empty();
 }
-traact::Timestamp traact::component::vision::KinectAzurePlayer::getNextTimestamp() {
+traact::Timestamp traact::component::kinect::KinectAzurePlayer::getNextTimestamp() {
     if (frames.empty()) {
         SPDLOG_WARN("Buffer empty, could not load fast enough for realtime playback");
     }
@@ -19,7 +18,7 @@ traact::Timestamp traact::component::vision::KinectAzurePlayer::getNextTimestamp
     return frames.front().timestamp;
 
 }
-void traact::component::vision::KinectAzurePlayer::sendCurrent(traact::Timestamp ts) {
+void traact::component::kinect::KinectAzurePlayer::sendCurrent(traact::Timestamp ts) {
     using namespace traact::vision;
 
     auto buffer_future = request_callback_(ts);
@@ -72,7 +71,7 @@ void traact::component::vision::KinectAzurePlayer::sendCurrent(traact::Timestamp
     buffer->commit(true);
 }
 
-bool traact::component::vision::KinectAzurePlayer::configure(const nlohmann::json &parameter,
+bool traact::component::kinect::KinectAzurePlayer::configure(const nlohmann::json &parameter,
                                                              buffer::ComponentBufferConfig *data) {
     if (running_)
         return true;
@@ -136,7 +135,7 @@ bool traact::component::vision::KinectAzurePlayer::configure(const nlohmann::jso
 
     return true;//ModuleComponent::configure(parameter, data);
 }
-bool traact::component::vision::KinectAzurePlayer::start() {
+bool traact::component::kinect::KinectAzurePlayer::start() {
     SPDLOG_DEBUG("{0}: Starting Kinect Player", getName());
     thread_ = std::make_shared<std::thread>([this] {
         running_ = true;
@@ -144,22 +143,22 @@ bool traact::component::vision::KinectAzurePlayer::start() {
     });
     return true;//ModuleComponent::start();
 }
-bool traact::component::vision::KinectAzurePlayer::stop() {
+bool traact::component::kinect::KinectAzurePlayer::stop() {
     if (!running_)
         return true;
     running_ = false;
     thread_->join();
     return true;//ModuleComponent::stop();
 }
-bool traact::component::vision::KinectAzurePlayer::teardown() {
+bool traact::component::kinect::KinectAzurePlayer::teardown() {
 
     return true;//ModuleComponent::teardown();
 }
-traact::component::vision::KinectAzurePlayer::KinectAzurePlayer(const std::string &name)
+traact::component::kinect::KinectAzurePlayer::KinectAzurePlayer(const std::string &name)
     : PlayerBaseComponent(name), has_data_lock_(10, 0), frames_lock_(10, 10) {}
-//traact::component::vision::KinectAzurePlayer::KinectAzurePlayer(const std::string &name) : Component(name, ComponentType::ASYNC_SOURCE), has_data_lock_(10,0), frames_lock_(10, 10) {}
+//traact::component::kinect::KinectAzurePlayer::KinectAzurePlayer(const std::string &name) : Component(name, ComponentType::ASYNC_SOURCE), has_data_lock_(10,0), frames_lock_(10, 10) {}
 
-void traact::component::vision::KinectAzurePlayer::thread_loop() {
+void traact::component::kinect::KinectAzurePlayer::thread_loop() {
 
     bool reached_end = false;
     while (running_ && !reached_end) {
@@ -170,7 +169,7 @@ void traact::component::vision::KinectAzurePlayer::thread_loop() {
 
 }
 
-bool traact::component::vision::KinectAzurePlayer::read_frame() {
+bool traact::component::kinect::KinectAzurePlayer::read_frame() {
     using namespace std::chrono;
 
     frames_lock_.wait();
@@ -205,5 +204,5 @@ RTTR_PLUGIN_REGISTRATION // remark the different registration macro!
 {
 
     using namespace rttr;
-    registration::class_<traact::component::vision::KinectAzurePlayer>("KinectAzurePlayer").constructor<std::string>()();
+    registration::class_<traact::component::kinect::KinectAzurePlayer>("KinectAzurePlayer").constructor<std::string>()();
 }

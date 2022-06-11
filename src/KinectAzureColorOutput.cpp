@@ -11,7 +11,7 @@
 #include "KinectUtils.h"
 #include <rttr/registration>
 #include <traact/buffer/SourceComponentBuffer.h>
-namespace traact::component::vision {
+namespace traact::component::kinect {
 
 class KinectAzureColorOutput : public KinectAzureComponent {
  public:
@@ -19,7 +19,7 @@ class KinectAzureColorOutput : public KinectAzureComponent {
 
     }
 
-    traact::pattern::Pattern::Ptr GetPattern() const override {
+    static traact::pattern::Pattern::Ptr GetPattern() {
         traact::pattern::Pattern::Ptr
             pattern = getUncalibratedCameraPattern();
         pattern->name = "KinectAzureColorOutput";
@@ -129,7 +129,7 @@ class KinectAzureColorOutput : public KinectAzureComponent {
         buffer->commit(true);
     }
 
- RTTR_ENABLE(KinectAzureComponent)
+
 
 };
 }
@@ -140,7 +140,7 @@ RTTR_PLUGIN_REGISTRATION // remark the different registration macro!
 {
 
     using namespace rttr;
-    registration::class_<traact::component::vision::KinectAzureColorOutput>("KinectAzureColorOutput").constructor<std::string>()();
+    registration::class_<traact::component::kinect::KinectAzureColorOutput>("KinectAzureColorOutput").constructor<std::string>()();
 }
 
 #endif //TRAACTMULTI_TRAACT_KINECT_AZURE_SRC_KINECTAZURECOLOROUTPUT_H_

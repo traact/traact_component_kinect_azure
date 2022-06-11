@@ -2,7 +2,7 @@
 
 #include "KinectUtils.h"
 
-namespace traact::component::vision {
+namespace traact::component::kinect {
 std::map<std::string, k4a_wired_sync_mode_t> KinectUtils::k4a_wired_sync_mode = {
     {"STANDALONE", K4A_WIRED_SYNC_MODE_STANDALONE},
     {"MASTER", K4A_WIRED_SYNC_MODE_MASTER},

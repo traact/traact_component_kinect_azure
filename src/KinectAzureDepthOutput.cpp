@@ -11,7 +11,7 @@
 #include "KinectUtils.h"
 #include <rttr/registration>
 #include <traact/buffer/SourceComponentBuffer.h>
-namespace traact::component::vision {
+namespace traact::component::kinect {
 
 class KinectAzureDepthOutput : public KinectAzureComponent {
  public:
@@ -19,7 +19,7 @@ class KinectAzureDepthOutput : public KinectAzureComponent {
 
     }
 
-    traact::pattern::Pattern::Ptr GetPattern() const override {
+    static traact::pattern::Pattern::Ptr GetPattern() {
         traact::pattern::Pattern::Ptr
             pattern = getUncalibratedCameraPattern();
         pattern->name = "KinectAzureDepthOutput";
@@ -141,7 +141,7 @@ RTTR_PLUGIN_REGISTRATION // remark the different registration macro!
 {
 
     using namespace rttr;
-    registration::class_<traact::component::vision::KinectAzureDepthOutput>("KinectAzureDepthOutput").constructor<std::string>()();
+    registration::class_<traact::component::kinect::KinectAzureDepthOutput>("KinectAzureDepthOutput").constructor<std::string>()();
 }
 
 #endif //TRAACTMULTI_TRAACT_KINECT_AZURE_SRC_KINECTAZUREDEPTHOUTPUT_H_
