@@ -189,7 +189,7 @@ bool traact::component::kinect::KinectAzurePlayer::read_frame() {
 
     auto ts_ns = duration_cast<nanoseconds>(new_frame.color_image.get_device_timestamp());
     //auto ts_ns = duration_cast<nanoseconds>(new_frame.color_image.get_system_timestamp());
-    new_frame.timestamp = Timestamp::min() + ts_ns + std::chrono::seconds(10);
+    new_frame.timestamp = kTimestampZero + ts_ns + std::chrono::seconds(10);
     Timestamp ts = new_frame.timestamp;
     //SPDLOG_TRACE("{0}: new timestamp {1}", getName(), new_frame.timestamp.time_since_epoch().count());
     frames.push(std::move(new_frame));
