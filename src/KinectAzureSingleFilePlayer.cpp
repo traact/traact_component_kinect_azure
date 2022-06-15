@@ -50,15 +50,15 @@ class KinectAzureSingleFilePlayer : public Component {
                                                              frames_lock_(10, 10) {}
 
     virtual void configureInstance(const pattern::instance::PatternInstance &pattern_instance) override {
-        local_connected_output_ports_ = pattern_instance.getOutputPortsConnected();
+        local_connected_output_ports_ = pattern_instance.getOutputPortsConnected(kDefaultTimeDomain);
     }
 
-    bool configure(const nlohmann::json &parameter, buffer::ComponentBufferConfig *data) override {
+    bool configure(const pattern::instance::PatternInstance &pattern_instance, buffer::ComponentBufferConfig *data) override {
         if (running_)
             return true;
 
-        pattern::setValueFromParameter(parameter, "file", filename_, "/data/video.mkv");
-        pattern::setValueFromParameter(parameter, "stop_after_n_frames", stop_after_n_frames_, stop_after_n_frames_);
+        pattern::setValueFromParameter(pattern_instance, "file", filename_, "/data/video.mkv");
+        pattern::setValueFromParameter(pattern_instance, "stop_after_n_frames", stop_after_n_frames_, stop_after_n_frames_);
 
         recording_.handle = k4a::playback::open(filename_.c_str());
         if (!recording_.handle) {

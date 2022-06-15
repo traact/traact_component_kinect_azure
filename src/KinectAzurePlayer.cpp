@@ -71,12 +71,12 @@ void traact::component::kinect::KinectAzurePlayer::sendCurrent(traact::Timestamp
     buffer->commit(true);
 }
 
-bool traact::component::kinect::KinectAzurePlayer::configure(const nlohmann::json &parameter,
+bool traact::component::kinect::KinectAzurePlayer::configure(const pattern::instance::PatternInstance &pattern_instance,
                                                              buffer::ComponentBufferConfig *data) {
     if (running_)
         return true;
 
-    pattern::setValueFromParameter(parameter, "file", filename_, "/data/video.mkv");
+    pattern::setValueFromParameter(pattern_instance, "file", filename_, "/data/video.mkv");
 
     recording_.handle = k4a::playback::open(filename_.c_str());
     if (!recording_.handle) {

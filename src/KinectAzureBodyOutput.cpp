@@ -52,47 +52,47 @@ class KinectAzureBodyOutput : public KinectAzureComponent {
         return pattern;
     }
 
-    bool configure(const nlohmann::json &parameter, buffer::ComponentBufferConfig *data) override {
+    bool configure(const pattern::instance::PatternInstance &pattern_instance, buffer::ComponentBufferConfig *data) override {
         std::shared_ptr<KinectAzureModule> k4a_module = std::dynamic_pointer_cast<KinectAzureModule>(module_);
 
-        pattern::setValueFromParameter(parameter,
+        pattern::setValueFromParameter(pattern_instance,
                                        "ColorResolution",
                                        k4a_module->device_configuration.color_resolution,
                                        "1080P",
                                        KinectUtils::k4a_color_resolution);
-        pattern::setValueFromParameter(parameter,
+        pattern::setValueFromParameter(pattern_instance,
                                        "ColorImageFormat",
                                        k4a_module->device_configuration.color_format,
                                        "COLOR_BGRA32",
                                        KinectUtils::k4a_image_format);
-        pattern::setValueFromParameter(parameter,
+        pattern::setValueFromParameter(pattern_instance,
                                        "FrameRate",
                                        k4a_module->device_configuration.camera_fps,
                                        "30",
                                        KinectUtils::k4a_fps);
-        pattern::setValueFromParameter(parameter,
+        pattern::setValueFromParameter(pattern_instance,
                                        "DepthMode",
                                        k4a_module->device_configuration.depth_mode,
                                        "NFOV_UNBINNED",
                                        KinectUtils::k4a_depth_mode);
-        pattern::setBoolValueFromParameter(parameter,
+        pattern::setBoolValueFromParameter(pattern_instance,
                                            "SyncedImagesOnly",
                                            k4a_module->device_configuration.synchronized_images_only,
                                            true);
-        pattern::setValueFromParameter(parameter,
+        pattern::setValueFromParameter(pattern_instance,
                                        "DepthDelayOffColor_usec",
                                        k4a_module->device_configuration.depth_delay_off_color_usec,
                                        0);
-        pattern::setValueFromParameter(parameter,
+        pattern::setValueFromParameter(pattern_instance,
                                        "HardwareSyncMode",
                                        k4a_module->device_configuration.wired_sync_mode,
                                        "STANDALONE",
                                        KinectUtils::k4a_wired_sync_mode);
-        pattern::setValueFromParameter(parameter,
+        pattern::setValueFromParameter(pattern_instance,
                                        "SubordinateDelayOffMaster_usec",
                                        k4a_module->device_configuration.subordinate_delay_off_master_usec,
                                        0);
-        pattern::setBoolValueFromParameter(parameter,
+        pattern::setBoolValueFromParameter(pattern_instance,
                                            "DisableStreamingIndicator",
                                            k4a_module->device_configuration.disable_streaming_indicator,
                                            false);
