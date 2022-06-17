@@ -133,8 +133,8 @@ class KinectAzureBodyOutput : public KinectAzureComponent {
                 k4abt_joint_confidence_level_t confidenceLevel = k4abt_body.skeleton.joints[j].confidence_level;
 
                 BodyJoint bodyJoint;
-                Eigen::Translation3d pos(position.v[0] / 1000., -position.v[1] / 1000., -position.v[2] / 1000.);
-                Eigen::Quaterniond rot(-orientation.v[0], -orientation.v[1], orientation.v[2], orientation.v[3]);
+                traact::spatial::Translation3D pos(position.v[0] / 1000., -position.v[1] / 1000., -position.v[2] / 1000.);
+                traact::spatial::Rotation3D rot(-orientation.v[0], -orientation.v[1], orientation.v[2], orientation.v[3]);
                 bodyJoint.pose = pos * rot;
                 bodyJoint.confidenceLevel = confidenceLevel;
 

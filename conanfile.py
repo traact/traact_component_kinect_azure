@@ -25,7 +25,7 @@ class TraactPackage(ConanFile):
     def requirements(self):
         self.traact_requires("traact_vision", "latest")
         self.traact_requires("traact_spatial", "latest")
-        self.requires("kinect-azure-sensor-sdk/1.4.1@camposs/stable")
+        self.requires("kinect-azure-sensor-sdk/1.4.1-r2@camposs/stable")
         if self.options.with_bodytracking:
             self.requires("kinect-azure-bodytracking-sdk/1.1.0@vendor/stable")
         if self.options.with_tests:

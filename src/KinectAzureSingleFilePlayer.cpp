@@ -46,8 +46,8 @@ class KinectAzureSingleFilePlayer : public Component {
     }
 
     explicit KinectAzureSingleFilePlayer(std::string name) : Component(std::move(name)),
-                                                             has_data_lock_(10, 0),
-                                                             frames_lock_(10, 10) {}
+                                                             has_data_lock_(10, 0, kDefaultWaitingTimeout),
+                                                             frames_lock_(10, 10, kDefaultWaitingTimeout) {}
 
     virtual void configureInstance(const pattern::instance::PatternInstance &pattern_instance) override {
         local_connected_output_ports_ = pattern_instance.getOutputPortsConnected(kDefaultTimeDomain);
