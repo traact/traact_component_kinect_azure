@@ -20,6 +20,20 @@ class KinectAzureSingleFilePlayer : public Component {
     using OutPort_IrImage = buffer::PortConfig<traact::vision::ImageHeader, 2>;
     using OutPort_IrCalibration = buffer::PortConfig<traact::vision::CameraCalibrationHeader, 3>;
 
+    ~KinectAzureSingleFilePlayer() {
+        try{
+            if(thread_->joinable()){
+                thread_->join();
+            }
+            if(thread_sender_->joinable()){
+                thread_sender_->join();
+            }
+        } catch(std::exception e){
+            SPDLOG_ERROR(e.what());
+        }
+
+    }
+
     static traact::pattern::Pattern::Ptr GetPattern() {
         traact::pattern::Pattern::Ptr
             pattern =
@@ -164,7 +178,7 @@ class KinectAzureSingleFilePlayer : public Component {
     std::int64_t stop_after_n_frames_{-1};
     std::uint64_t current_frame_idx_{0};
     std::timed_mutex mutex_;
-    bool running_{false};
+    std::atomic_bool running_{false};
     //bool thread_loop_end_{false};
     std::string filename_;
     Timestamp first_timestamp_;
@@ -173,7 +187,7 @@ class KinectAzureSingleFilePlayer : public Component {
     std::shared_ptr<std::thread> thread_;
     std::shared_ptr<std::thread> thread_sender_;
     std::queue<frame_t> frames;
-    bool reached_end{false};
+    std::atomic_bool  reached_end{false};
     Semaphore frames_lock_;
     Semaphore has_data_lock_;
     TimeDuration last_offset_{0};
