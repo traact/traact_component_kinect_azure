@@ -377,7 +377,7 @@ class KinectAzureSingleFilePlayer : public Component {
             }
 
             new_frame.timestamp = kTimestampZero + ts_ns;
-            SPDLOG_INFO("{0}: new frame data with ts {1}", getName(), new_frame.timestamp.time_since_epoch().count());
+            SPDLOG_TRACE("{0}: new frame data with ts {1}", getName(), new_frame.timestamp.time_since_epoch().count());
             frames.push(std::move(new_frame));
             has_data_lock_.notify();
         } catch (...) {
