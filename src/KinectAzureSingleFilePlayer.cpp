@@ -21,14 +21,14 @@ class KinectAzureSingleFilePlayer : public Component {
     using OutPort_IrCalibration = buffer::PortConfig<traact::vision::CameraCalibrationHeader, 3>;
 
     ~KinectAzureSingleFilePlayer() {
-        try{
-            if(thread_->joinable()){
+        try {
+            if (thread_->joinable()) {
                 thread_->join();
             }
-            if(thread_sender_->joinable()){
+            if (thread_sender_->joinable()) {
                 thread_sender_->join();
             }
-        } catch(std::exception e){
+        } catch (std::exception &e) {
             SPDLOG_ERROR(e.what());
         }
 
@@ -67,12 +67,16 @@ class KinectAzureSingleFilePlayer : public Component {
         local_connected_output_ports_ = pattern_instance.getOutputPortsConnected(kDefaultTimeDomain);
     }
 
-    bool configure(const pattern::instance::PatternInstance &pattern_instance, buffer::ComponentBufferConfig *data) override {
+    bool configure(const pattern::instance::PatternInstance &pattern_instance,
+                   buffer::ComponentBufferConfig *data) override {
         if (running_)
             return true;
 
         pattern::setValueFromParameter(pattern_instance, "file", filename_, "/data/video.mkv");
-        pattern::setValueFromParameter(pattern_instance, "stop_after_n_frames", stop_after_n_frames_, stop_after_n_frames_);
+        pattern::setValueFromParameter(pattern_instance,
+                                       "stop_after_n_frames",
+                                       stop_after_n_frames_,
+                                       stop_after_n_frames_);
 
         recording_.handle = k4a::playback::open(filename_.c_str());
         if (!recording_.handle) {
@@ -148,12 +152,6 @@ class KinectAzureSingleFilePlayer : public Component {
             running_ = false;
         }
 
-        thread_->join();
-        // if the sender thread is about to exit because the playback finished
-        // calling setSourceFinished would lead the thread to wait for itself to finish, in that case don't wait as it will finish anyway
-        //if(!thread_loop_end_)
-        thread_sender_->join();
-
         return true;
     }
     bool teardown() override {
@@ -187,7 +185,7 @@ class KinectAzureSingleFilePlayer : public Component {
     std::shared_ptr<std::thread> thread_;
     std::shared_ptr<std::thread> thread_sender_;
     std::queue<frame_t> frames;
-    std::atomic_bool  reached_end{false};
+    std::atomic_bool reached_end{false};
     Semaphore frames_lock_;
     Semaphore has_data_lock_;
     TimeDuration last_offset_{0};
@@ -221,6 +219,7 @@ class KinectAzureSingleFilePlayer : public Component {
             reached_end = !read_frame();
 
         };
+        SPDLOG_INFO("{0}: loop reader end", getName());
     }
     void setHeader(vision::ImageHeader &header, const k4a::image &image) {
         header.width = image.get_width_pixels();
@@ -298,20 +297,16 @@ class KinectAzureSingleFilePlayer : public Component {
                     std::unique_lock<std::timed_mutex> guard(mutex_, std::defer_lock);
                     running_ = false;
                 }
-                setSourceFinished();
+                //setSourceFinished();
             }
         }
 
-        SPDLOG_INFO("{0}: playback end", getName());
-//            {
-//                std::unique_lock<std::timed_mutex> guard(mutex_,  std::defer_lock);
-//                if (!guard.try_lock_for(std::chrono::milliseconds(10))) {
-//                    SPDLOG_ERROR("Timeout for lock playback end");
-//                }
-//                thread_loop_end_ = true;
-//            }
-        if (running_)
-            setSourceFinished();
+
+        //if (running_) {
+            //setSourceFinished();
+        //}
+
+        SPDLOG_INFO("{0}: loop sender end", getName());
 
     };
 
@@ -367,7 +362,6 @@ class KinectAzureSingleFilePlayer : public Component {
                          name_);
             while (ts_ns == TimeDuration::min()) {
                 if (!recording_.handle.get_next_capture(&(recording_.capture))) {
-                    reached_end = true;
                     SPDLOG_INFO("{0}: reached end of file", getName());
                     return false;
                 }
