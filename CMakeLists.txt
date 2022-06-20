@@ -30,3 +30,5 @@ set(COMPONENT_KINECT_AZURE_SRC src/KinectAzure.cpp
 add_library(${CONAN_PACKAGE_NAME} SHARED ${COMPONENT_KINECT_AZURE_SRC})
 
 conan_target_link_libraries(${CONAN_PACKAGE_NAME})
+
+include(traact_default_library_final)
