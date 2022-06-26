@@ -51,9 +51,7 @@ class KinectAzureSingleFilePlayer : public Component {
             .addEdge("ImagePlane", "Image", "output");
 
         pattern->addStringParameter("file", "/data/video.mkv")
-            .addParameter("stop_after_n_frames", -1l, -1l,
-                          std::numeric_limits<std::int64_t>::max()
-            );
+            .addParameter("stop_after_n_frames", -1l, -1l);
 
         return
             pattern;
