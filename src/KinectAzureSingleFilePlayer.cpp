@@ -51,7 +51,8 @@ class KinectAzureSingleFilePlayer : public Component {
             .addEdge("ImagePlane", "Image", "output");
 
         pattern->addStringParameter("file", "/data/video.mkv")
-            .addParameter("stop_after_n_frames", -1l, -1l);
+            .addParameter("stop_after_n_frames", int64_t(-1), int64_t(-1))
+            .addParameter("send_same_frame_as_new_after_stop", false);
 
         return
             pattern;
@@ -70,11 +71,9 @@ class KinectAzureSingleFilePlayer : public Component {
         if (running_)
             return true;
 
-        pattern::setValueFromParameter(pattern_instance, "file", filename_, "/data/video.mkv");
-        pattern::setValueFromParameter(pattern_instance,
-                                       "stop_after_n_frames",
-                                       stop_after_n_frames_,
-                                       stop_after_n_frames_);
+        pattern_instance.setValueFromParameter("file",filename_);
+        pattern_instance.setValueFromParameter("stop_after_n_frames",stop_after_n_frames_);
+        pattern_instance.setValueFromParameter("send_same_frame_as_new_after_stop",send_same_frame_as_new_after_stop_);
 
         recording_.handle = k4a::playback::open(filename_.c_str());
         if (!recording_.handle) {
@@ -111,14 +110,18 @@ class KinectAzureSingleFilePlayer : public Component {
             }
         }
 
+        using namespace std::chrono;
         switch (recording_.record_config.camera_fps) {
             case K4A_FRAMES_PER_SECOND_5:
+                time_delta_ = duration_cast<nanoseconds>(seconds(1)) / 5;
                 //recording_.time_per_frame = std::chrono::microseconds(std::micro::den / (std::micro::num * 5));
                 break;
             case K4A_FRAMES_PER_SECOND_15:
+                time_delta_ = duration_cast<nanoseconds>(seconds(1)) / 15;
                 //recording_.time_per_frame = std::chrono::microseconds(std::micro::den / (std::micro::num * 15));
                 break;
             case K4A_FRAMES_PER_SECOND_30:
+                time_delta_ = duration_cast<nanoseconds>(seconds(1)) / 30;
                 //recording_.time_per_frame = std::chrono::microseconds(std::micro::den / (std::micro::num * 30));
                 break;
         }
@@ -172,9 +175,11 @@ class KinectAzureSingleFilePlayer : public Component {
     } frame_t;
 
     std::int64_t stop_after_n_frames_{-1};
-    std::uint64_t current_frame_idx_{0};
+    std::uint64_t current_send_frame_idx_{0};
+    std::uint64_t current_read_frame_idx_{0};
     std::timed_mutex mutex_;
     std::atomic_bool running_{false};
+    std::chrono::nanoseconds time_delta_;
     //bool thread_loop_end_{false};
     std::string filename_;
     Timestamp first_timestamp_;
@@ -187,6 +192,7 @@ class KinectAzureSingleFilePlayer : public Component {
     Semaphore frames_lock_;
     Semaphore has_data_lock_;
     TimeDuration last_offset_{0};
+    bool send_same_frame_as_new_after_stop_{false};
 
     traact::vision::CameraCalibration color_calibration_;
     traact::vision::CameraCalibration ir_calibration_;
@@ -207,7 +213,7 @@ class KinectAzureSingleFilePlayer : public Component {
             SPDLOG_ERROR("Timeout for lock IsSenderRunning, return false");
             return false;
         }
-        return running_ && (has_data_lock_.count() > 0 || !reached_end);
+        return running_ && (has_data_lock_.count() > 0 || !reached_end || send_same_frame_as_new_after_stop_);
     }
 
     void thread_loop() {
@@ -289,14 +295,15 @@ class KinectAzureSingleFilePlayer : public Component {
             SPDLOG_TRACE("{0}: commit color", getName());
             buffer->commit(true);
 
-            current_frame_idx_++;
-            if (current_frame_idx_ > stop_after_n_frames_) {
-                {
-                    std::unique_lock<std::timed_mutex> guard(mutex_, std::defer_lock);
-                    running_ = false;
-                }
-                //setSourceFinished();
+            current_send_frame_idx_++;
+            if (current_send_frame_idx_ > stop_after_n_frames_ && send_same_frame_as_new_after_stop_ && frames.empty()) {
+                SPDLOG_INFO("send old image {0}", current_frame.timestamp);
+                current_frame.timestamp += time_delta_;
+                SPDLOG_INFO("send old image new timestamp {0}", current_frame.timestamp);
+                frames.push(current_frame);
+                has_data_lock_.notify();
             }
+
         }
 
 
@@ -386,6 +393,15 @@ class KinectAzureSingleFilePlayer : public Component {
             SPDLOG_TRACE("{0}: new frame data with ts {1}", getName(), new_frame.timestamp.time_since_epoch().count());
             frames.push(std::move(new_frame));
             has_data_lock_.notify();
+            current_read_frame_idx_++;
+            if (stop_after_n_frames_ > 0 && current_read_frame_idx_ > stop_after_n_frames_) {
+                return false;
+//                {
+//                    std::unique_lock<std::timed_mutex> guard(mutex_, std::defer_lock);
+//                    running_ = false;
+//                }
+                //setSourceFinished();
+            }
         } catch (...) {
             SPDLOG_ERROR("exception trying to read frame");
             return false;
