@@ -24,7 +24,7 @@ set(COMPONENT_KINECT_AZURE_SRC src/KinectAzure.cpp
         #src/KinectAzureIROutput.cpp
         #src/KinectAzurePlayer.cpp
         #src/KinectAzurePlayer.h
-        src/KinectAzureSingleFilePlayer.cpp src/KinectLookupTable.cpp src/KinectLookupTable.h)
+        src/KinectAzureSingleFilePlayer.cpp)
 
 
 add_library(${CONAN_PACKAGE_NAME} SHARED ${COMPONENT_KINECT_AZURE_SRC})

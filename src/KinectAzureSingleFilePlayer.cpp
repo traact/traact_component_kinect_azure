@@ -11,7 +11,7 @@
 #include "KinectUtils.h"
 #include <mutex>
 #include <traact/opencv/OpenCVUtils.h>
-#include "KinectLookupTable.h"
+#include "traact/util/KinectLookupTable.h"
 namespace traact::component::kinect {
 
 class KinectAzureSingleFilePlayer : public Component {
