@@ -29,4 +29,4 @@ class TraactPackage(ConanFile):
         if self.options.with_bodytracking:
             self.requires("kinect-azure-bodytracking-sdk/1.1.0@vendor/stable")
         if self.options.with_tests:
-            self.requires("gtest/[>=1.11.0]")
+            self.requires("gtest/cci.20210126")
