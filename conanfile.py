@@ -1,13 +1,14 @@
 # /usr/bin/python3
 import os
-from conans import ConanFile, CMake, tools
-
+from conan import ConanFile
+from conan.tools.build import can_run
 
 class TraactPackage(ConanFile):
-    python_requires = "traact_run_env/1.0.0@traact/latest"
-    python_requires_extend = "traact_run_env.TraactPackageCmake"
+    python_requires = "traact_base/0.0.0@traact/latest"
+    python_requires_extend = "traact_base.TraactPackageCmake"
 
     name = "traact_component_kinect_azure"
+    version = "0.0.0"
     description = "Traact Kinect Azure driver component"
     url = "https://github.com/traact/traact_component_kinect_azure.git"
     license = "MIT"
@@ -16,17 +17,26 @@ class TraactPackage(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     compiler = "cppstd"
 
-    def _options(self):
-        self.options["with_bodytracking"] = [True, False]
-        self.default_options["with_bodytracking"] = True
-
     exports_sources = "src/*", "util/*", "tests/*", "CMakeLists.txt"
 
+    options = {
+        "shared": [True, False],
+        "trace_logs_in_release": [True, False],
+        "with_bodytracking" : [True, False]
+    }
+
+    default_options = {
+        "shared": True,
+        "trace_logs_in_release": True,
+        "with_bodytracking" : True
+    }
+
     def requirements(self):
-        self.traact_requires("traact_vision", "latest")
-        self.traact_requires("traact_spatial", "latest")
-        self.requires("kinect-azure-sensor-sdk/1.4.1-r2@camposs/stable")
+        self.requires("traact_spatial/0.0.0@traact/latest")
+        self.requires("traact_vision/0.0.0@traact/latest")
+        self.requires("kinect-azure-sensor-sdk/1.4.1-r3@camposs/stable", run=True)
         if self.options.with_bodytracking:
-            self.requires("kinect-azure-bodytracking-sdk/1.1.0@vendor/stable")
-        if self.options.with_tests:
-            self.requires("gtest/cci.20210126")
+            self.requires("kinect-azure-bodytracking-sdk/1.1.0@vendor/stable", run=True)
+
+    def _after_package_info(self):
+        self.cpp_info.libs = ["traact_component_kinect_azure"]
