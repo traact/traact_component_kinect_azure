@@ -22,13 +22,13 @@ class TraactPackage(ConanFile):
     options = {
         "shared": [True, False],
         "trace_logs_in_release": [True, False],
-        "with_bodytracking" : [True, False]
+        "with_bodytracking": [True, False]
     }
 
     default_options = {
         "shared": True,
         "trace_logs_in_release": True,
-        "with_bodytracking" : True
+        "with_bodytracking": True
     }
 
     def requirements(self):

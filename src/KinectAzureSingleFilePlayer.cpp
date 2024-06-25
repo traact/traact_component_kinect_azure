@@ -123,20 +123,20 @@ class KinectAzureSingleFilePlayer : public Component {
             return false;
         }
 
-        if (!recording_.handle.get_next_capture(&(recording_.capture))) {
-            SPDLOG_ERROR("{0} recording cannot read first frame: {1}", getName(), filename_);
-            return false;
-        }
 
         // skip the first 5 frames from the recording as they typically contain chunk frames/timestamps
         uint64_t min_ts;
         //SPDLOG_INFO("PlaybackKinect4Azure[{0}] skipping 5 frames from start for: {1}", m_name, filename);
         for (int i = 0; i < 5; i++) {
             //get_minimum_timestamp_from_capture(recording_, min_ts);
-            if (!recording_.handle.get_next_capture(&(recording_.capture))) {
-                SPDLOG_ERROR("{1}: could not read frame while skipping frame {0}", i, getName());
-                return false;
+            try{
+                if (!recording_.handle.get_next_capture(&(recording_.capture))) {
+                  SPDLOG_ERROR("{1}: could not read frame while skipping frame {0}", i, getName());
+                }
+            } catch(std::exception &e){
+                SPDLOG_ERROR("{1}: could not read frame while skipping frame {0}", e.what(), getName());
             }
+
         }
 
         using namespace std::chrono;
@@ -286,6 +286,8 @@ class KinectAzureSingleFilePlayer : public Component {
 
             SPDLOG_TRACE("{0}: send next frame to network {1}", getName(), ts.time_since_epoch().count());
 
+
+
             auto buffer_future = request_callback_(ts);
             buffer_future.wait();
             auto buffer = buffer_future.get();
@@ -421,9 +423,20 @@ class KinectAzureSingleFilePlayer : public Component {
                          has_data_lock_.count(),
                          name_);
             while (ts_ns == TimeDuration::min()) {
-                if (!recording_.handle.get_next_capture(&(recording_.capture))) {
-                    SPDLOG_INFO("{0}: reached end of file", getName());
-                    return false;
+
+                try {
+                    if (!recording_.handle.get_next_capture(&(recording_.capture))) {
+                      SPDLOG_INFO("{0}: reached end of file", getName());
+                      return false;
+                    }
+                }catch(std::exception &e){
+                    SPDLOG_ERROR("{0}, {1}, error get_next_capture", e.what(),getName());
+                    continue;
+                }
+
+                if(!recording_.capture.is_valid()) {
+                    SPDLOG_WARN("{0}: invalid frame read", getName());
+                    continue;
                 }
 
                 new_frame.color_image = recording_.capture.get_color_image();

@@ -11,14 +11,14 @@ include(traact_default_library_setup)
 
 
 set(COMPONENT_KINECT_AZURE_SRC src/KinectAzure.cpp
-        #src/KinectAzure.h
+        src/KinectAzure.h
         src/KinectUtils.cpp
         src/KinectUtils.h
-        #src/KinectAzureColorOutput.cpp
-        #src/KinectAzureDepthOutput.cpp
-        #src/KinectAzureBodyOutput.cpp
-        #src/KinectAzureStaticData.h
-        #src/KinectAzureIROutput.cpp
+        src/KinectAzureOutputColor.cpp
+        src/KinectAzureOutputDepth.cpp
+        src/KinectAzureOutputBody.cpp
+        src/KinectAzureOutputCalibration.cpp
+        src/KinectAzureOutputIR.cpp
         #src/KinectAzurePlayer.cpp
         #src/KinectAzurePlayer.h
         src/KinectAzureSingleFilePlayer.cpp)
@@ -31,12 +31,13 @@ find_package(traact_vision REQUIRED)
 find_package(kinect-azure-sensor-sdk REQUIRED)
 
 if (WITH_BODYTRACKING)
-    find_package(kinect-azure-bodytracking-sdk REQUIRED)
+find_package(kinect-azure-bodytracking-sdk REQUIRED)
 endif()
 
 target_link_libraries(${TARGET_NAME} PUBLIC traact_spatial::traact_spatial traact_vision::traact_vision kinect-azure-sensor-sdk::kinect-azure-sensor-sdk) 
 
 if(WITH_BODYTRACKING)
+    add_definitions(-DWITH_BODYTRACKING)
     target_link_libraries(${TARGET_NAME}  PUBLIC kinect-azure-bodytracking-sdk::kinect-azure-bodytracking-sdk )
 endif()
 

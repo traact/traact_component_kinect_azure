@@ -6,14 +6,13 @@
 #include <traact/traact.h>
 #include <traact/vision.h>
 
-#define WITH_BODYTRACKING
-
 #include <k4a/k4a.hpp>
 #ifdef WITH_BODYTRACKING
 #include <k4abt.hpp>
 #endif
 
 #include <thread>
+#include <utility>
 
 namespace traact::component::kinect {
 
@@ -21,26 +20,36 @@ enum class KinectOutputs {
     ColorImage = 0,
     DepthImage,
     IRImage,
-    BodyTracking,
     PlayerMask,
+    BodyTracking,
+  Calibration,
     Count
 };
 
 class KinectAzureComponent : public ModuleComponent {
  public:
     KinectAzureComponent(std::string name)
-        : ModuleComponent(name, ModuleType::UNIQUE_DATAFLOW_PARAMETER) {
+        : ModuleComponent(std::move(name), ModuleType::UNIQUE_DATAFLOW_PARAMETER) {
     };
 
-    virtual void process(k4a::capture &capture, Timestamp ts);
+    void setModuleKey(const pattern::instance::PatternInstance &pattern_instance) override;
+    virtual k4a::image getImage(k4a::capture &capture);
     virtual void process(k4abt::frame &capture, Timestamp ts);
+    virtual void process(const k4a::calibration &calibration, Timestamp ts);
     virtual void noValidInput(Timestamp ts);
     virtual KinectOutputs GetOutputType() = 0;
 
     std::string getModuleKey() override;
     Module::Ptr instantiateModule() override;
 
- protected:
+    void process_internal(k4a::capture &capture, Timestamp ts);
+
+
+    static traact::pattern::Pattern::Ptr getBasicCameraPattern();
+
+    bool configure(const pattern::instance::PatternInstance &pattern_instance, buffer::ComponentBufferConfig *data) override;
+
+   protected:
     std::string device_id_;
 
 };
@@ -54,6 +63,7 @@ class KinectAzureModule : public Module {
     bool teardown(ComponentPtr module_component) override;
 
     k4a_device_configuration_t device_configuration{K4A_DEVICE_CONFIG_INIT_DISABLE_ALL};
+    std::string device_id;
 
 #ifdef WITH_BODYTRACKING
     k4abt_tracker_configuration_t tracker_configuration;
@@ -67,7 +77,7 @@ class KinectAzureModule : public Module {
     std::mutex component_lock_;
 
     k4a::device device_;
-
+    k4a::calibration sensor_calibration_;
 #ifdef WITH_BODYTRACKING
     k4abt::tracker tracker_;
     bool bodytracking_enabled_{false};
